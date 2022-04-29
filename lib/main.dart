@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:line_icons/line_icons.dart';
 import 'package:http/http.dart' as http;
 
+import 'model/server_prediction_response.dart';
+
 Future<void> main() async {
   await dotenv.load(fileName: ".env");
   runApp(const MyApp());
@@ -20,28 +22,46 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: ImageUploadPage(),
+    return MaterialApp(
+      home: const ImageUploadPage(),
+      theme: ThemeData(
+        primaryColor: const Color(0xff3e6b04),
+      ),
     );
   }
 }
 
-class ImageUploadPage extends StatelessWidget {
+class ImageUploadPage extends StatefulWidget {
   const ImageUploadPage({Key? key}) : super(key: key);
-  static const primaryColor = Color(0xff30a84b);
+
+  @override
+  State<ImageUploadPage> createState() => _ImageUploadPageState();
+}
+
+class _ImageUploadPageState extends State<ImageUploadPage> {
+
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    if (mounted) {
+      super.initState();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mango Leaves DS'),
-        backgroundColor: primaryColor,
+        title: const Text('Mango Leaves Health Detection'),
+        backgroundColor: Theme.of(context).primaryColor,
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            isLoading ? _showLoadingDialogue() : const SizedBox.shrink(),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -67,12 +87,7 @@ class ImageUploadPage extends StatelessWidget {
 
         final file = XFileImage(image!);
 
-        showModalBottomSheet<void>(
-          context: context,
-          builder: (BuildContext context) {
-            return _buildBottomSheetWidget(context, file);
-          },
-        );
+        await predictImage(context, file);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 35.0),
@@ -80,16 +95,16 @@ class ImageUploadPage extends StatelessWidget {
           border: Border.all(color: Colors.grey),
         ),
         child: Column(
-          children: const [
+          children: [
             Icon(
               LineIcons.upload,
               size: 30.0,
-              color: primaryColor,
+              color: Theme.of(context).primaryColor,
             ),
-            SizedBox(
+            const SizedBox(
               height: 10.0,
             ),
-            Text('Upload photo'),
+            const Text('Upload photo'),
           ],
         ),
       ),
@@ -105,12 +120,7 @@ class ImageUploadPage extends StatelessWidget {
 
         final file = XFileImage(photo!);
 
-        showModalBottomSheet<void>(
-          context: context,
-          builder: (BuildContext context) {
-            return _buildBottomSheetWidget(context, file);
-          },
-        );
+        await predictImage(context, file);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 35.0),
@@ -118,34 +128,52 @@ class ImageUploadPage extends StatelessWidget {
           border: Border.all(color: Colors.grey),
         ),
         child: Column(
-          children: const [
+          children: [
             Icon(
               LineIcons.camera,
               size: 30.0,
-              color: primaryColor,
+              color: Theme.of(context).primaryColor,
             ),
-            SizedBox(
+            const SizedBox(
               height: 10.0,
             ),
-            Text('Take photo'),
+            const Text('Take photo'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBottomSheetWidget(BuildContext context, XFileImage image) {
+  Widget _buildBottomSheetWidget(
+      BuildContext bottomSheetContext, XFileImage image, int status, double confidence) {
+    Color chipColor;
+    String healthStatus;
+
+    if (status == 0) {
+      //the leaf is diseased
+      healthStatus = 'Diseased';
+      chipColor = Colors.redAccent;
+    } else if (status == 1) {
+      //the leaf is healthy
+      healthStatus = 'Healthy';
+      chipColor = Theme.of(context).primaryColor;
+    } else {
+      //unknown
+      healthStatus = 'Unknown';
+      chipColor = Colors.amberAccent;
+    }
+
     return Container(
-      height: 470,
+      height: 400,
       color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Container(
-              height: 300.0,
+              height: 200.0,
               width: double.infinity,
               decoration: const BoxDecoration(
                 borderRadius: BorderRadius.all(Radius.circular(8.0)),
@@ -159,18 +187,108 @@ class ImageUploadPage extends StatelessWidget {
               ),
             ),
             const SizedBox(
+              height: 15.0,
+            ),
+            const Divider(),
+            Row(
+              children: [
+                const Text('Status: '),
+                const SizedBox(
+                  width: 10.0,
+                ),
+                Chip(
+                  backgroundColor: chipColor, //CircleAvatar
+                  label: Text(
+                    healthStatus,
+                    style: const TextStyle(color: Colors.white),
+                  ), //Text
+                ),
+              ],
+            ),
+            const SizedBox(
+              height: 5.0,
+            ),
+            Row(
+              children: [
+                const Text('Confidence: '),
+                const SizedBox(
+                  width: 10.0,
+                ),
+                Text(confidence.toString()),
+              ],
+            ),
+            const SizedBox(
               height: 10.0,
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                primary: Colors.green,
-                minimumSize: const Size.fromHeight(50),
-              ),
-              child: const Text('Predict'),
-              onPressed: () async {
-                // Navigator.pop(context);
-                await predictImage(image);
-              },
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.all(10.0),
+                      primary: Theme.of(context).primaryColor,
+                      side: BorderSide(color: Theme.of(context).primaryColor),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(
+                          LineIcons.camera, size: 20.0,
+                        ),
+                        SizedBox(
+                          width: 5.0,
+                        ),
+                        Text('Take New Photo', style: TextStyle(fontSize: 13.0),),
+                      ],
+                    ),
+                    onPressed: () async {
+                      Navigator.pop(bottomSheetContext);
+                      // Capture a photo
+                      final XFile? photo =
+                      await _picker.pickImage(source: ImageSource.camera);
+
+                      final file = XFileImage(photo!);
+
+                      await predictImage(context, file);
+                    },
+                  ),
+                ),
+                const SizedBox(
+                  width: 5.0,
+                ),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.all(10.0),
+                      primary: Theme.of(context).primaryColor,
+                      side: BorderSide(color: Theme.of(context).primaryColor),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(
+                          LineIcons.upload, size: 20.0,
+                        ),
+                        SizedBox(
+                          width: 5.0,
+                        ),
+                        Text('Upload New Image', style: TextStyle(fontSize: 13.0),),
+                      ],
+                    ),
+                    onPressed: () async {
+                      Navigator.pop(bottomSheetContext);
+                      // Pick an image
+                      final XFile? image =
+                      await _picker.pickImage(source: ImageSource.gallery);
+
+                      final file = XFileImage(image!);
+
+                      await predictImage(context, file);
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -178,20 +296,24 @@ class ImageUploadPage extends StatelessWidget {
     );
   }
 
-  predictImage(XFileImage image) async {
+  predictImage(BuildContext bottomSheetContext, XFileImage image) async {
+    setState(() {
+      isLoading = true;
+    });
+
     final bytes = await image.file.readAsBytes();
     String base64Image = base64Encode(bytes);
 
     var client = http.Client();
 
     final payload =
-        jsonEncode({'image': base64Image, 'application': 'mangoes-leaves'});
+        jsonEncode({'image': base64Image, 'application': 'mangoes-leaves1'});
 
     var baseUrl = dotenv.env['BASE_URL'];
     var apiKey = dotenv.env['API_KEY'];
 
-    // String endpointUrl = baseUrl! + '/v1/lambda/predict';
-    String endpointUrl = baseUrl! + '/v1/sagemaker/predict';
+    String endpointUrl = baseUrl! + '/v1/lambda/predict';
+    // String endpointUrl = baseUrl! + '/v1/sagemaker/predict';
 
     var url = Uri.parse(endpointUrl);
 
@@ -203,5 +325,41 @@ class ImageUploadPage extends StatelessWidget {
 
     print(response.body);
 
+    int? results;
+    double? confidence;
+
+    try {
+      final predictResponse = predictResponseFromJson(response.body);
+      results = predictResponse.results;
+      confidence = predictResponse.confidence;
+    } catch (e) {
+      results = null;
+      confidence = null;
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+
+    showModalBottomSheet<void>(
+      context: bottomSheetContext,
+      builder: (BuildContext bottomSheetContext) {
+        return _buildBottomSheetWidget(bottomSheetContext, image, results!, confidence!);
+      },
+    );
+  }
+
+  Widget _showLoadingDialogue() {
+    return AlertDialog(
+      content: SingleChildScrollView(
+        child: Row(
+          children: [
+            CircularProgressIndicator(color: Theme.of(context).primaryColor,),
+            const SizedBox(width: 10.0,),
+            const Text('Loading...'),
+          ],
+        )
+      ),
+    );
   }
 }
