@@ -12,4 +12,4 @@ The main purpose is to determine whether a Mango Leaf is healthy or diseased.
 
 | Overview | Healthy response | Diseased response |
 | ------------- | ------------- | ------------- |
-| ![Overview](https://github.com/kaykhahima/mango-leaves-health-detection/blob/main/assets/images/app-screenshots/0.%20overview.jpg "Journal tab")  | ![Healthy response](https://github.com/kaykhahima/mango-leaves-health-detection/blob/main/assets/images/app-screenshots/1.%20healthy.jpg "Healthy response")  | ![Healthy response](https://github.com/kaykhahima/mango-leaves-health-detection/blob/main/assets/images/app-screenshots/2.%20diseased.jpg "Diseased response") |
+| ![Overview](https://github.com/kaykhahima/mango-leaves-health-detection/blob/main/assets/images/app-screenshots/0.%20overview.jpg "Overview")  | ![Healthy response](https://github.com/kaykhahima/mango-leaves-health-detection/blob/main/assets/images/app-screenshots/1.%20healthy.jpg "Healthy response")  | ![Healthy response](https://github.com/kaykhahima/mango-leaves-health-detection/blob/main/assets/images/app-screenshots/2.%20diseased.jpg "Diseased response") |
