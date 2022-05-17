@@ -10,3 +10,5 @@ This project's main purpose is to determine whether a Mango Leaf is healthy or d
 
 ### App Screenshots
 ![App Screenshot](https://github.com/kaykhahima/mango-leaves-health-detection/blob/main/assets/images/app-screenshots/0.%20overview.jpg?raw=true)
+![App Screenshot](https://github.com/kaykhahima/mango-leaves-health-detection/blob/main/assets/images/app-screenshots/1.%20healthy.jpg?raw=true)
+![App Screenshot](https://github.com/kaykhahima/mango-leaves-health-detection/blob/main/assets/images/app-screenshots/2.%20diseased.jpg?raw=true)
